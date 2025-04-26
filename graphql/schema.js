@@ -2,21 +2,36 @@ const { buildSchema } = require('graphql');
 
 const schema = buildSchema(`
   type User {
+    _id: ID
     name: String
     email: String
     password: String
+    
   }
 
   type Card {
+    _id: ID
     date: String
     title: String
     description: String
     autor: String
     volunType: String
     email: String
+    
   }
 
+  type UserCards {
+  email: String!
+  selectedCards: [Card]!
+  }
+
+
   input UserInput {
+    name: String
+    email: String
+    password: String
+  }
+  input UserCreate {
     name: String
     email: String
     password: String
@@ -30,6 +45,14 @@ const schema = buildSchema(`
     volunType: String
     email: String
   }
+    input CardCreate {
+    date: String!
+    title: String!
+    description: String!
+    autor: String!
+    volunType: String!
+    email: String!
+  }
 
   type Query {
     users: [User]
@@ -37,17 +60,22 @@ const schema = buildSchema(`
     userByEmail(email: String!): User
     cardsByEmail(email: String!): [Card]
     cardsByType(volunType: String!): [Card]
+    currentUser: User
+    getUserCards(email: String!): UserCards
   }
 
   type Mutation {
     login(email: String!, password: String!): String
-    createUser(input: UserInput): User
-    updateUser(email: String!, input: UserInput): User
+    createUser(input: UserCreate!): User
+    updateUser(email: String!, input: UserInput!): User
     deleteUser(email: String!): Boolean
 
-    createCard(input: CardInput): Card
-    updateCard(email: String!, title: String!, input: CardInput): Card
-    deleteCard(email: String!, title: String!): Boolean
+    createCard(input: CardCreate!): Card
+    updateCard(cardId: String!, input: CardInput!): String
+    deleteCard(cardId: String!): Boolean
+    addUserCard(email: String!, cardId: String!): UserCards
+    deleteUserCard(email: String!, cardId: String!): UserCards
+
   }
 `);
 
