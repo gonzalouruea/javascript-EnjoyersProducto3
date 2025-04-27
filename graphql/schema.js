@@ -73,8 +73,8 @@ const schema = buildSchema(`
     createCard(input: CardCreate!): Card
     updateCard(cardId: String!, input: CardInput!): String
     deleteCard(cardId: String!): String
-    addUserCard(email: String!, cardId: String!): UserCards
-    deleteUserCard(email: String!, cardId: String!): UserCards
+    addUserCard(email: String!, cardId: String!): String
+    deleteUserCard(email: String!, cardId: String!): String
 
   }
 `);

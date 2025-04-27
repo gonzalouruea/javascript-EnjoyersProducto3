@@ -1,5 +1,4 @@
 const express = require('express');
-//const cors = require('cors');
 
 const { createHandler } = require('graphql-http/lib/use/express');
 
@@ -16,7 +15,6 @@ const app = express();
 
 app.get('/', (req, res) => res.send('Bienvenido a mi API GraphQL'));
 
-//app.use(cors());
 app.use(express.json());
 
 app.use('/' + route, createHandler({

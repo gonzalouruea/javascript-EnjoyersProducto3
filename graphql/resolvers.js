@@ -68,8 +68,14 @@ const resolvers = {
 
     deleteUser: async ({ email }) => {
         const db = await connectDB();
-        const result = await db.collection("users").deleteOne({ email });
-        //return result.deletedCount > 0;
+        const userExists = await db.collection("users").findOne({ email })
+
+        if (!userExists) {
+            throw new Error("Usuario no existe")
+        }
+
+        await db.collection("users").deleteOne({ email });
+
         return `Usuario con email ${email} eliminado correctamente`
     },
 
@@ -77,17 +83,19 @@ const resolvers = {
         const db = await connectDB();
         const user = await db.collection("users").findOne({ email: input.email });
 
-
-        if (user) {
-            if (user.email === input.email && user.name == input.autor) {
-                await db.collection("cards").insertOne(input);
-            } else {
-                throw new Error("No corresponde el autor del voluntariado con el usuario (email)");
-
-            }
-        } else {
+        if (!user) {
             throw new Error("Usuario (email) del voluntariado no encontrado");
         }
+
+        if (user.name !== input.autor) {
+            throw new Error("No corresponde el autor del voluntariado con el usuario (email)");
+        }
+
+        if (input.volunType && !["Oferta", "Petición"].includes(input.volunType)) {
+            throw new Error("Tipo de voluntariado incorrecto, debe ser 'Oferta' o 'Petición'");
+        }
+
+        await db.collection("cards").insertOne(input);
 
         return input;
     },
@@ -115,8 +123,8 @@ const resolvers = {
         }
 
         // validamos si el input de volunType es "Oferta" o "Petición"
-        if (input.volunType &&!["Oferta", "Petición"].includes(input.volunType)){
-            throw new Error ("Tipo de voluntariado incorrecto, debe ser 'Oferta' o 'Petición'")
+        if (input.volunType && !["Oferta", "Petición"].includes(input.volunType)) {
+            throw new Error("Tipo de voluntariado incorrecto, debe ser 'Oferta' o 'Petición'")
         }
 
         // Si la validación pasa, hacemos el update
@@ -131,7 +139,13 @@ const resolvers = {
 
     deleteCard: async ({ cardId }) => {
         const db = await connectDB();
-        const result = await db.collection("cards").deleteOne({ _id: new ObjectId(cardId) });
+        const cardExists = await db.collection("cards").findOne({_id: new ObjectId(cardId)})
+        
+        if (!cardExists){
+            throw new Error ('No se ha encontrado el ID del voluntariado')
+        }
+
+        await db.collection("cards").deleteOne({ _id: new ObjectId(cardId) });
         //return result.deletedCount > 0;
         return `Voluntariado con ID ${cardId} eliminado correctamente`
     },
@@ -192,8 +206,9 @@ const resolvers = {
             });
         }
 
-        return await collection.findOne({ email });
+        return "Voluntariado añadido a la selección correctamente";
     },
+    
     deleteUserCard: async ({ email, cardId }) => {
         const db = await connectDB();
         const collection = db.collection('usercards');
@@ -215,7 +230,7 @@ const resolvers = {
             { $pull: { selectedCards: { _id: objectId } } }
         );
 
-        return await collection.findOne({ email });
+        return "Voluntariado eliminado de la selección correctamente";
     },
 
 
