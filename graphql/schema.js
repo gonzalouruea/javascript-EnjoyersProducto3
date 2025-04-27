@@ -54,6 +54,14 @@ const schema = buildSchema(`
     email: String!
   }
 
+  # con este type se hace que muestre el mensaje al hacer el deleteUser y deleteCard
+
+  type DeleteResponse {
+    success: Boolean
+    message: String
+  }
+  
+
   type Query {
     users: [User]
     cards: [Card]
@@ -68,11 +76,11 @@ const schema = buildSchema(`
     login(email: String!, password: String!): String
     createUser(input: UserCreate!): User
     updateUser(email: String!, input: UserInput!): User
-    deleteUser(email: String!): Boolean
+    deleteUser(email: String!): DeleteResponse
 
     createCard(input: CardCreate!): Card
     updateCard(cardId: String!, input: CardInput!): String
-    deleteCard(cardId: String!): Boolean
+    deleteCard(cardId: String!): DeleteResponse
     addUserCard(email: String!, cardId: String!): UserCards
     deleteUserCard(email: String!, cardId: String!): UserCards
 

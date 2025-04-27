@@ -57,19 +57,53 @@ const resolvers = {
             { $set: input },
             { returnDocument: "after" }
         );
+
+        console.log (result.value);
+
         if (!result.value) throw new Error("Usuario no encontrado");
         return result.value;
     },
 
+
+    /*deleteUser: async ({ email }) => {
+        const db = await connectDB();
+        const result = await db.collection("users").deleteOne({ email });
+        if(!result.deletedCount>0){
+            throw new Error("El usuario no ha sido borrado ya que no existe");
+        }
+        return result.deletedCount > 0;
+    },*/
+
     deleteUser: async ({ email }) => {
         const db = await connectDB();
         const result = await db.collection("users").deleteOne({ email });
-        return result.deletedCount > 0;
+    
+        if (result.deletedCount === 0) {
+            // Si no se eliminó ningún usuario, lanzamos un error
+            return {
+                success: false,
+                message: "El usuario no ha sido borrado ya que no existe"
+            };
+        } else {
+            // Si el usuario fue eliminado correctamente, devolvemos éxito y mensaje
+            return {
+                success: true,
+                message: "Usuario borrado correctamente"
+            };
+        }
     },
+    
+
+
+
+
+
+
 
     createCard: async ({ input }) => {
         const db = await connectDB();
-        const user = await db.collection("users").findOne(input.email);
+        //const user = await db.collection("users").findOne(input.email);
+        const user = await db.collection("users").findOne({ email: input.email });
 
 
         if (user) {
@@ -145,11 +179,36 @@ const resolvers = {
 
     },
 
-    deleteCard: async ({ cardId }) => {
+   /*deleteCard: async ({ cardId }) => {
         const db = await connectDB();
         const result = await db.collection("cards").deleteOne({ _id: new ObjectId(cardId) });
         return result.deletedCount > 0;
+    },*/
+
+    deleteUser: async ({ cardId }) => {
+        const db = await connectDB();
+        const result = await db.collection("cards").deleteOne({ _id: new ObjectId(cardId) });
+    
+        if (result.deletedCount === 0) {
+            // Si no se eliminó ningún usuario, lanzamos un error
+            return {
+                success: false,
+                message: "El usuario no ha sido borrado ya que no existe"
+            };
+        } else {
+            // Si el usuario fue eliminado correctamente, devolvemos éxito y mensaje
+            return {
+                success: true,
+                message: "Usuario borrado correctamente"
+            };
+        }
     },
+
+
+
+
+
+
 
     login: async ({ email, password }) => {
         const db = await connectDB();
