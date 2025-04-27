@@ -25,12 +25,12 @@ const schema = buildSchema(`
   selectedCards: [Card]!
   }
 
-
   input UserInput {
     name: String
     email: String
     password: String
   }
+
   input UserCreate {
     name: String
     email: String
@@ -55,8 +55,8 @@ const schema = buildSchema(`
   }
 
   type Query {
-    users: [User]
-    cards: [Card]
+    getUsers: [User]
+    getCards: [Card]
     userByEmail(email: String!): User
     cardsByEmail(email: String!): [Card]
     cardsByType(volunType: String!): [Card]
@@ -66,13 +66,13 @@ const schema = buildSchema(`
 
   type Mutation {
     login(email: String!, password: String!): String
-    createUser(input: UserCreate!): User
-    updateUser(email: String!, input: UserInput!): User
-    deleteUser(email: String!): Boolean
+    createUser(input: UserCreate!): String
+    updateUser(email: String!, input: UserInput!): String
+    deleteUser(email: String!): String
 
     createCard(input: CardCreate!): Card
     updateCard(cardId: String!, input: CardInput!): String
-    deleteCard(cardId: String!): Boolean
+    deleteCard(cardId: String!): String
     addUserCard(email: String!, cardId: String!): UserCards
     deleteUserCard(email: String!, cardId: String!): UserCards
 

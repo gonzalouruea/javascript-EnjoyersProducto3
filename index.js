@@ -3,16 +3,19 @@ const express = require('express');
 
 const { createHandler } = require('graphql-http/lib/use/express');
 
-const schema = require('./graphql/schema');
-const root = require('./graphql/resolvers');
-const userRoutes = require('./routes/userRoutes');
-const cardRoutes = require('./routes/cardRoutes');
+const schema = require('./graphql/schema.js');
+const root = require('./graphql/resolvers.js');
+const userRoutes = require('./routes/userRoutes.js');
+const cardRoutes = require('./routes/cardRoutes.js');
 const { verifyToken , getUserFromToken} = require("./auth.js");
 
 const port = 4000;
 const route = "graphql";
 
 const app = express();
+
+app.get('/', (req, res) => res.send('Bienvenido a mi API GraphQL'));
+
 //app.use(cors());
 app.use(express.json());
 
