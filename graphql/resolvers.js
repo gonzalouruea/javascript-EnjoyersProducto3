@@ -1,239 +1,325 @@
-const { connectDB } = require("../mongo");
-const { generateToken } = require("../auth");
-const { ObjectId } = require('mongodb');
-const bcrypt = require("bcryptjs");
+const { connectDB } = require("../mongo"); // Importa la función para conectar con MongoDB
+const { generateToken } = require("../auth"); // Importa la función para generar JWT
+const { ObjectId } = require('mongodb'); // Importa ObjectId para manejo de IDs en MongoDB
+const bcrypt = require("bcryptjs"); // Importa bcrypt para hashear contraseñas
 
-
+/**
+ * Resolvers para las operaciones de la API GraphQL.
+ *
+ * @module resolvers
+ */
 const resolvers = {
-    getUsers: async () => {
-        const db = await connectDB();
-        return await db.collection("users").find().toArray();
-    },
 
-    getCards: async () => {
-        const db = await connectDB();
-        return await db.collection("cards").find().toArray();
-    },
+  /**
+   * Obtiene todos los usuarios.
+   * @returns {Promise<Array>} Lista de usuarios.
+   */
+  getUsers: async () => {
+    const db = await connectDB();
+    return await db.collection("users").find().toArray();
+  },
 
-    userByEmail: async ({ email }) => {
-        const db = await connectDB();
-        return await db.collection("users").findOne({ email });
-    },
+  /**
+   * Obtiene todas las cards de voluntariado.
+   * @returns {Promise<Array>} Lista de cards.
+   */
+  getCards: async () => {
+    const db = await connectDB();
+    return await db.collection("cards").find().toArray();
+  },
 
-    cardsByEmail: async ({ email }) => {
-        const db = await connectDB();
-        return await db.collection("cards").find({ email }).toArray();
-    },
+  /**
+   * Obtiene un usuario por su email.
+   * @param {Object} param0
+   * @param {string} param0.email - Email del usuario.
+   * @returns {Promise<Object|null>} Usuario encontrado o null.
+   */
+  userByEmail: async ({ email }) => {
+    const db = await connectDB();
+    return await db.collection("users").findOne({ email });
+  },
 
-    cardsByType: async ({ volunType }) => {
-        const db = await connectDB();
-        return await db.collection("cards").find({ volunType }).toArray();
-    },
+  /**
+   * Obtiene todas las cards asociadas a un email.
+   * @param {Object} param0
+   * @param {string} param0.email - Email del autor.
+   * @returns {Promise<Array>} Lista de cards asociadas.
+   */
+  cardsByEmail: async ({ email }) => {
+    const db = await connectDB();
+    return await db.collection("cards").find({ email }).toArray();
+  },
 
-    createUser: async ({ input }) => {
-        const db = await connectDB();
-        const usersCollection = db.collection("users");
+  /**
+   * Obtiene cards por tipo de voluntariado.
+   * @param {Object} param0
+   * @param {string} param0.volunType - Tipo de voluntariado ('Oferta' o 'Petición').
+   * @returns {Promise<Array>} Lista de cards filtradas por tipo.
+   */
+  cardsByType: async ({ volunType }) => {
+    const db = await connectDB();
+    return await db.collection("cards").find({ volunType }).toArray();
+  },
 
-        const existingUser = await usersCollection.findOne({ email: input.email });
-        if (existingUser) throw new Error("Usuario ya existe");
+  /**
+   * Crea un nuevo usuario.
+   * @param {Object} param0
+   * @param {Object} param0.input - Datos del usuario.
+   * @returns {Promise<string>} Mensaje de confirmación.
+   */
+  createUser: async ({ input }) => {
+    const db = await connectDB();
+    const usersCollection = db.collection("users");
 
-        const hashedPassword = await bcrypt.hash(input.password, 10);
+    const existingUser = await usersCollection.findOne({ email: input.email });
+    if (existingUser) throw new Error("Usuario ya existe");
 
-        const newUser = {
-            name: input.name,
-            email: input.email,
-            password: hashedPassword
-        };
+    const hashedPassword = await bcrypt.hash(input.password, 10);
 
-        await usersCollection.insertOne(newUser);
-        return 'Usuario registrado correctamente';
-    },
+    const newUser = {
+      name: input.name,
+      email: input.email,
+      password: hashedPassword
+    };
 
-    updateUser: async ({ email, input }) => {
-        const db = await connectDB();
-        const existingUser = await db.collection("users").findOne({ email });
+    await usersCollection.insertOne(newUser);
+    return 'Usuario registrado correctamente';
+  },
 
-        if (!existingUser) {
-            throw new Error("Usuario no encontrado")
-        }
+  /**
+   * Actualiza un usuario existente.
+   * @param {Object} param0
+   * @param {string} param0.email - Email del usuario a actualizar.
+   * @param {Object} param0.input - Nuevos datos del usuario.
+   * @returns {Promise<string>} Mensaje de confirmación.
+   */
+  updateUser: async ({ email, input }) => {
+    const db = await connectDB();
+    const existingUser = await db.collection("users").findOne({ email });
 
-        await db.collection("users").findOneAndUpdate(
-            { email },
-            { $set: input },
-            { returnDocument: "after" }
-        );
+    if (!existingUser) throw new Error("Usuario no encontrado");
 
-        return `Usuario ${email} actualizado correctamente`
-    },
+    await db.collection("users").findOneAndUpdate(
+      { email },
+      { $set: input },
+      { returnDocument: "after" }
+    );
 
-    deleteUser: async ({ email }) => {
-        const db = await connectDB();
-        const userExists = await db.collection("users").findOne({ email })
+    return `Usuario ${email} actualizado correctamente`;
+  },
 
-        if (!userExists) {
-            throw new Error("Usuario no existe")
-        }
+  /**
+   * Elimina un usuario por su email.
+   * @param {Object} param0
+   * @param {string} param0.email - Email del usuario a eliminar.
+   * @returns {Promise<string>} Mensaje de confirmación.
+   */
+  deleteUser: async ({ email }) => {
+    const db = await connectDB();
+    const userExists = await db.collection("users").findOne({ email });
 
-        await db.collection("users").deleteOne({ email });
+    if (!userExists) throw new Error("Usuario no existe");
 
-        return `Usuario con email ${email} eliminado correctamente`
-    },
+    await db.collection("users").deleteOne({ email });
 
-    createCard: async ({ input }) => {
-        const db = await connectDB();
-        const user = await db.collection("users").findOne({ email: input.email });
+    return `Usuario con email ${email} eliminado correctamente`;
+  },
 
-        if (!user) {
-            throw new Error("Usuario (email) del voluntariado no encontrado");
-        }
+  /**
+   * Crea una nueva card de voluntariado.
+   * @param {Object} param0
+   * @param {Object} param0.input - Datos de la card.
+   * @returns {Promise<Object>} Card creada.
+   */
+  createCard: async ({ input }) => {
+    const db = await connectDB();
+    const user = await db.collection("users").findOne({ email: input.email });
 
-        if (user.name !== input.autor) {
-            throw new Error("No corresponde el autor del voluntariado con el usuario (email)");
-        }
+    if (!user) throw new Error("Usuario (email) del voluntariado no encontrado");
 
-        if (input.volunType && !["Oferta", "Petición"].includes(input.volunType)) {
-            throw new Error("Tipo de voluntariado incorrecto, debe ser 'Oferta' o 'Petición'");
-        }
+    if (user.name !== input.autor) {
+      throw new Error("No corresponde el autor del voluntariado con el usuario (email)");
+    }
 
-        await db.collection("cards").insertOne(input);
+    if (input.volunType && !["Oferta", "Petición"].includes(input.volunType)) {
+      throw new Error("Tipo de voluntariado incorrecto, debe ser 'Oferta' o 'Petición'");
+    }
 
-        return input;
-    },
+    await db.collection("cards").insertOne(input);
 
-    updateCard: async ({ cardId, input }) => {
-        const db = await connectDB();
+    return input;
+  },
 
-        if (!ObjectId.isValid(cardId)) {
-            throw new Error("ID de voluntariado inválido");
-        }
+  /**
+   * Actualiza una card de voluntariado existente.
+   * @param {Object} param0
+   * @param {string} param0.cardId - ID de la card.
+   * @param {Object} param0.input - Nuevos datos de la card.
+   * @returns {Promise<string>} Mensaje de confirmación.
+   */
+  updateCard: async ({ cardId, input }) => {
+    const db = await connectDB();
 
-        // Necesitamos validar el autor y el email
-        if (input.email && input.autor) {
-            const user = await db.collection("users").findOne({ email: input.email });
+    if (!ObjectId.isValid(cardId)) {
+      throw new Error("ID de voluntariado inválido");
+    }
 
-            if (!user) {
-                throw new Error("Usuario (email) del voluntariado no encontrado");
-            }
+    if (input.email && input.autor) {
+      const user = await db.collection("users").findOne({ email: input.email });
 
-            if (user.name !== input.autor) {
-                throw new Error("No corresponde el autor del voluntariado con el usuario (email)");
-            }
-        } else {
-            throw new Error("Se requiere email y autor para actualizar el voluntariado");
-        }
+      if (!user) throw new Error("Usuario (email) del voluntariado no encontrado");
+      if (user.name !== input.autor) {
+        throw new Error("No corresponde el autor del voluntariado con el usuario (email)");
+      }
+    } else {
+      throw new Error("Se requiere email y autor para actualizar el voluntariado");
+    }
 
-        // validamos si el input de volunType es "Oferta" o "Petición"
-        if (input.volunType && !["Oferta", "Petición"].includes(input.volunType)) {
-            throw new Error("Tipo de voluntariado incorrecto, debe ser 'Oferta' o 'Petición'")
-        }
+    if (input.volunType && !["Oferta", "Petición"].includes(input.volunType)) {
+      throw new Error("Tipo de voluntariado incorrecto, debe ser 'Oferta' o 'Petición'");
+    }
 
-        // Si la validación pasa, hacemos el update
-        await db.collection("cards").findOneAndUpdate(
-            { _id: new ObjectId(cardId) },
-            { $set: input },
-            { returnDocument: "after" }
-        );
+    await db.collection("cards").findOneAndUpdate(
+      { _id: new ObjectId(cardId) },
+      { $set: input },
+      { returnDocument: "after" }
+    );
 
-        return "Voluntariado actualizado correctamente";
-    },
+    return "Voluntariado actualizado correctamente";
+  },
 
-    deleteCard: async ({ cardId }) => {
-        const db = await connectDB();
-        const cardExists = await db.collection("cards").findOne({_id: new ObjectId(cardId)})
-        
-        if (!cardExists){
-            throw new Error ('No se ha encontrado el ID del voluntariado')
-        }
+  /**
+   * Elimina una card por su ID.
+   * @param {Object} param0
+   * @param {string} param0.cardId - ID de la card.
+   * @returns {Promise<string>} Mensaje de confirmación.
+   */
+  deleteCard: async ({ cardId }) => {
+    const db = await connectDB();
+    const cardExists = await db.collection("cards").findOne({ _id: new ObjectId(cardId) });
 
-        await db.collection("cards").deleteOne({ _id: new ObjectId(cardId) });
-        //return result.deletedCount > 0;
-        return `Voluntariado con ID ${cardId} eliminado correctamente`
-    },
+    if (!cardExists) throw new Error('No se ha encontrado el ID del voluntariado');
 
-    login: async ({ email, password }) => {
-        const db = await connectDB();
-        const user = await db.collection("users").findOne({ email });
-        if (!user) throw new Error("Usuario no encontrado");
+    await db.collection("cards").deleteOne({ _id: new ObjectId(cardId) });
 
-        const valid = await bcrypt.compare(password, user.password);
-        if (!valid) throw new Error("Contraseña incorrecta");
+    return `Voluntariado con ID ${cardId} eliminado correctamente`;
+  },
 
-        return 'Usuario autenticado correctamente, token -> ' + generateToken(user);
-    },
+  /**
+   * Login de usuario (retorna token).
+   * @param {Object} param0
+   * @param {string} param0.email - Email del usuario.
+   * @param {string} param0.password - Contraseña del usuario.
+   * @returns {Promise<string>} Token JWT.
+   */
+  login: async ({ email, password }) => {
+    const db = await connectDB();
+    const user = await db.collection("users").findOne({ email });
 
-    currentUser: async (_args, context) => {
-        if (!context.currentUser) throw new Error("No autenticado");
+    if (!user) throw new Error("Usuario no encontrado");
 
-        const db = await connectDB();
-        const user = await db.collection("users").findOne({ email: context.currentUser.email });
-        if (!user) throw new Error("Usuario no encontrado");
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) throw new Error("Contraseña incorrecta");
 
-        return user;
-    },
+    return 'Usuario autenticado correctamente, token -> ' + generateToken(user);
+  },
 
+  /**
+   * Obtiene el usuario actualmente autenticado.
+   * @param {any} _args - No se usa.
+   * @param {Object} context - Contexto con usuario autenticado.
+   * @returns {Promise<Object>} Usuario actual.
+   */
+  currentUser: async (_args, context) => {
+    if (!context.currentUser) throw new Error("No autenticado");
 
-    getUserCards: async ({ email }) => {
-        const db = await connectDB();
-        const userCards = await db.collection('usercards').findOne({ email });
-        if (!userCards) {
-            throw new Error('Usuario no tiene selección de voluntariados');
-        }
-        return userCards;
-    },
+    const db = await connectDB();
+    const user = await db.collection("users").findOne({ email: context.currentUser.email });
 
-    addUserCard: async ({ email, cardId }) => {
-        const db = await connectDB();
-        const collection = db.collection('usercards');
-        const collectionUsers = db.collection('users');
-        const collectionCards = db.collection('cards');
-        const user = await collectionUsers.findOne({ email });
-        const card = await collectionCards.findOne({ _id: new ObjectId(cardId) });
-        const userCards = await collection.findOne({ email });
+    if (!user) throw new Error("Usuario no encontrado");
 
-        if (userCards) {
-            const exists = userCards.selectedCards.some(c => c._id.toString() === card._id.toString());
-            if (!exists) {
-                await collection.updateOne(
-                    { email },
-                    { $push: { selectedCards: card } }
-                );
-            }
-        } else if (user) {
-            // Si no existe, creamos uno nuevo
-            await collection.insertOne({
-                email,
-                selectedCards: [card],
-            });
-        }
+    return user;
+  },
 
-        return "Voluntariado añadido a la selección correctamente";
-    },
-    
-    deleteUserCard: async ({ email, cardId }) => {
-        const db = await connectDB();
-        const collection = db.collection('usercards');
-        const collectionCards = db.collection('cards');
-        const card = await collectionCards.findOne({ cardId });
-        const userCards = await collection.findOne({ email });
-        if (!userCards) {
-            throw new Error('No se encontró el usuario');
-        }
+  /**
+   * Obtiene las cards seleccionadas por un usuario.
+   * @param {Object} param0
+   * @param {string} param0.email - Email del usuario.
+   * @returns {Promise<Object>} Cards seleccionadas.
+   */
+  getUserCards: async ({ email }) => {
+    const db = await connectDB();
+    const userCards = await db.collection('usercards').findOne({ email });
 
-        const objectId = new ObjectId(cardId);
-        const exists = userCards.selectedCards.some(c => c._id.toString() === objectId.toString());
-        if (!exists) {
-            throw new Error('El voluntariado no fue seleccionado para este usuario');
-        }
+    if (!userCards) throw new Error('Usuario no tiene selección de voluntariados');
 
+    return userCards;
+  },
+
+  /**
+   * Añade una card seleccionada para un usuario.
+   * @param {Object} param0
+   * @param {string} param0.email - Email del usuario.
+   * @param {string} param0.cardId - ID de la card.
+   * @returns {Promise<string>} Mensaje de confirmación.
+   */
+  addUserCard: async ({ email, cardId }) => {
+    const db = await connectDB();
+    const collection = db.collection('usercards');
+    const collectionUsers = db.collection('users');
+    const collectionCards = db.collection('cards');
+    const user = await collectionUsers.findOne({ email });
+    const card = await collectionCards.findOne({ _id: new ObjectId(cardId) });
+    const userCards = await collection.findOne({ email });
+
+    if (userCards) {
+      const exists = userCards.selectedCards.some(c => c._id.toString() === card._id.toString());
+      if (!exists) {
         await collection.updateOne(
-            { email },
-            { $pull: { selectedCards: { _id: objectId } } }
+          { email },
+          { $push: { selectedCards: card } }
         );
+      }
+    } else if (user) {
+      await collection.insertOne({
+        email,
+        selectedCards: [card],
+      });
+    }
 
-        return "Voluntariado eliminado de la selección correctamente";
-    },
+    return "Voluntariado añadido a la selección correctamente";
+  },
 
+  /**
+   * Elimina una card de la selección de un usuario.
+   * @param {Object} param0
+   * @param {string} param0.email - Email del usuario.
+   * @param {string} param0.cardId - ID de la card.
+   * @returns {Promise<string>} Mensaje de confirmación.
+   */
+  deleteUserCard: async ({ email, cardId }) => {
+    const db = await connectDB();
+    const collection = db.collection('usercards');
+    const userCards = await collection.findOne({ email });
 
+    if (!userCards) {
+      throw new Error('No se encontró el usuario');
+    }
+
+    const objectId = new ObjectId(cardId);
+    const exists = userCards.selectedCards.some(c => c._id.toString() === objectId.toString());
+
+    if (!exists) {
+      throw new Error('El voluntariado no fue seleccionado para este usuario');
+    }
+
+    await collection.updateOne(
+      { email },
+      { $pull: { selectedCards: { _id: objectId } } }
+    );
+
+    return "Voluntariado eliminado de la selección correctamente";
+  },
 };
 
 module.exports = resolvers;

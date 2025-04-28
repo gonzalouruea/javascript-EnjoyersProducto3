@@ -1,9 +1,26 @@
-const { MongoClient } = require("mongodb");
-const { users, cards } = require("./data/storage");
+const { MongoClient } = require("mongodb"); // Importamos MongoClient desde mongodb
+const { users, cards } = require("./data/storage"); // Importamos los datos de usuarios y tarjetas desde storage.js
 
-const uri = "mongodb://localhost:27017";
-const dbName = "voluntariado";
+const uri = "mongodb://localhost:27017"; // URI de conexión a MongoDB local
+const dbName = "voluntariado"; // Nombre de la base de datos
 
+/**
+ * Realiza la migración de datos a MongoDB.
+ *
+ * Esta función conecta a la base de datos, limpia las colecciones existentes
+ * y carga nuevos datos desde el archivo `storage.js`.
+ *
+ * - Borra todos los documentos de las colecciones "users", "cards" y "usercards".
+ * - Inserta usuarios con contraseñas hasheadas usando bcrypt.
+ * - Inserta tarjetas directamente.
+ *
+ * @async
+ * @function migrate
+ * @throws {Error} Lanza un error si ocurre algún problema durante la conexión o migración.
+ * @example
+ * // Ejecutar la migración
+ * node migrateToMongo.js
+ */
 async function migrate() {
   const client = new MongoClient(uri);
   try {
@@ -14,11 +31,10 @@ async function migrate() {
     const cardsCol = db.collection("cards");
     const userCards = db.collection("usercards");
 
-    // Limpia si ya había datos (opcional)
+    // Limpia datos anteriores de las colecciones
     await usersCol.deleteMany({});
     await cardsCol.deleteMany({});
     await userCards.deleteMany({});
-
 
     // Inserta los datos de storage.js
     const usersWithHashed = await Promise.all(users.map(async user => {
@@ -38,4 +54,5 @@ async function migrate() {
   }
 }
 
+// Ejecutamos el proceso de migración
 migrate();
